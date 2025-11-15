@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import type { Participant, AppView, Judge } from '../types';
 import Navbar from './Navbar';
@@ -33,6 +34,8 @@ const UserView: React.FC<UserViewProps> = ({ data }) => {
       setScoringState(null);
   };
   
+  const userViews = useMemo<AppView[]>(() => ['scoring', 'ranking'], []);
+
   // Keep participant in scoringState in sync
   useEffect(() => {
     if (scoringState) {
@@ -42,6 +45,16 @@ const UserView: React.FC<UserViewProps> = ({ data }) => {
         }
     }
   }, [participants, scoringState]);
+
+  // FIX: Redirect to a valid view if an invalid one is set.
+  // This is done in a useEffect to avoid calling a state setter during render,
+  // which is a React anti-pattern and can cause issues. The original comparison
+  // also caused a TypeScript error because the types had no overlap.
+  useEffect(() => {
+    if (!userViews.includes(activeView)) {
+        setActiveView('scoring');
+    }
+  }, [activeView, userViews]);
 
 
   const categoriesForSheet = useMemo(() => (
@@ -79,14 +92,12 @@ const UserView: React.FC<UserViewProps> = ({ data }) => {
       case 'ranking':
         return <Ranking participants={participants} judges={judges} categoriesByLevel={categoriesByLevel} levels={LEVELS} />;
       default:
-        // Redirect to a valid view if somehow an invalid one is set
-        if (activeView !== 'scoring') setActiveView('scoring');
+        // Redirect to a valid view if somehow an invalid one is set.
+        // The redirect is now handled by the useEffect hook above.
         return null;
     }
   };
   
-  const userViews: AppView[] = ['scoring', 'ranking'];
-
   return (
     <div className="min-h-screen text-gray-800 dark:text-gray-200">
       <Sidebar 
